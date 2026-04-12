@@ -7,13 +7,28 @@ import InputCadastro from "@/components/InputCadastro";
 
 import api from "@/services/api";
 import toast from "react-hot-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function CadastroCurso() {
+	const { usuario, isLoading } = useAuth();
+	const router = useRouter();
 	const [nomeCurso, setNomeCurso] = useState("");
 	const [descricaoCurso, setDescricaoCurso] = useState("");
 	const [quantidadeSemestres, setQuantidadeSemestres] = useState("");
 	const [loading, setLoading] = useState(false);
+
+	useEffect(() => {
+		if (!isLoading && usuario?.nomePerfil.toLowerCase() !== "admin") {
+			toast.error("Acesso restrito a administradores");
+			router.push("/home");
+		}
+	}, [isLoading, usuario, router]);
+
+	if (isLoading || usuario?.nomePerfil.toLowerCase() !== "admin") {
+		return null;
+	}
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();

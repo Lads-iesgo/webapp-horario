@@ -8,9 +8,24 @@ import SelectCadastro from "@/components/SelectCadastro";
 
 import api from "@/services/api";
 import toast from "react-hot-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function CadastroSala() {
+	const { usuario, isLoading } = useAuth();
+	const router = useRouter();
+
+	useEffect(() => {
+		if (!isLoading && usuario?.nomePerfil.toLowerCase() !== "admin") {
+			toast.error("Acesso restrito a administradores");
+			router.push("/home");
+		}
+	}, [isLoading, usuario, router]);
+
+	if (isLoading || usuario?.nomePerfil.toLowerCase() !== "admin") {
+		return null;
+	}
 	const [formData, setFormData] = useState({
 		codigoSala: "",
 		nomeSala: "",
@@ -59,8 +74,6 @@ export default function CadastroSala() {
 				localizacao: formData.localizacao.trim() || null,
 			};
 
-			console.log("📤 Enviando payload:", payload);
-
 			const response = await api.post("/sala", payload);
 
 			const mensagemSucesso =
@@ -80,9 +93,6 @@ export default function CadastroSala() {
 				localizacao: "",
 			});
 		} catch (error: any) {
-			console.error("❌ Erro ao cadastrar sala:", error);
-			console.error("❌ Resposta da API:", error.response?.data);
-
 			let mensagemErro = "Erro ao cadastrar sala";
 
 			if (error.response?.data) {

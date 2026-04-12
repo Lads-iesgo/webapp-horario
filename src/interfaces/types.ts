@@ -13,12 +13,14 @@ export interface CelulaViewInterface {
 	idDiaSemana: number;
 	dia_semana: string;
 	idGrade: number;
-	semestre: string;
-	idSala: number;
-	codigoSala: string;
-	nomeSala: string;
-	criadoEm: string | null;
-	semestreDisciplina?: number; // Opcional caso o backend não retorne
+	idSala: number | null;
+	codigoSala: string | null;
+	nomeSala: string | null;
+	anoLetivo: number;
+	semestreLetivo: number;
+	semestreCelula: number;
+	duracaoSemestres: number;
+	criadoEm?: string | null;
 }
 
 export interface CelulaCursoViewInterface {
@@ -40,6 +42,7 @@ export interface ModalProps {
 	semestre: string;
 	idGrade?: number;
 	idCelula?: number;
+	idCurso: number;
 }
 
 export interface Professor {
@@ -65,7 +68,8 @@ export interface Disciplina {
 	cargaHoraria: number;
 	modalidade: "Presencial" | "Online" | "Hibrido";
 	tipoSala: "Laboratório" | "Sala" | "Sincrona";
-	semestreDisciplina: number;
+	semestreDisciplina?: number;
+	periodo?: number;
 }
 
 export interface DisciplinaSelectorProps {
@@ -108,6 +112,19 @@ export interface ButtonCadastroProps {
 export interface FormProps {
 	children: React.ReactNode;
 	className?: string;
+}
+
+export interface Curso {
+	idCurso: number;
+	nomeCurso: string;
+}
+
+export interface Grade {
+	idGrade: number;
+	idCurso: number;
+	anoLetivo: number;
+	semestreLetivo: number;
+	criadoEm?: string | null;
 }
 
 export interface SelectCadastroProps {

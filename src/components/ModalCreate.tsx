@@ -11,8 +11,9 @@ export default function Modal({
 	onSave,
 	dia,
 	semestre,
-	idGrade = 1,
+	idGrade,
 	idCelula,
+	idCurso,
 }: ModalProps) {
 	const [professores, setProfessores] = useState<Professor[]>([]);
 	const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
@@ -47,10 +48,22 @@ export default function Modal({
 	const carregarDisciplinas = async () => {
 		try {
 			setLoading(true);
-			const disciplinasResponse = await api.get<Disciplina[]>("/disciplina");
-			setDisciplinas(disciplinasResponse.data);
+			const semestreNumero = parseInt(semestre.replace("º Semestre", ""));
+			const disciplinasResponse = await api.get<Disciplina[]>(
+				`/disciplina/curso/${idCurso}`,
+			);
+			const dados = Array.isArray(disciplinasResponse.data)
+				? disciplinasResponse.data
+				: [];
+			const filtradas = dados.filter(
+				(d: any) => (d.periodo ?? d.semestreDisciplina) === semestreNumero,
+			);
+			const unicas = filtradas.filter(
+				(d, i, arr) =>
+					arr.findIndex((x) => x.idDisciplina === d.idDisciplina) === i,
+			);
+			setDisciplinas(unicas);
 		} catch (error) {
-			console.error("Erro ao carregar disciplinas:", error);
 			toast.error("Erro ao carregar disciplinas");
 		} finally {
 			setLoading(false);
@@ -63,9 +76,12 @@ export default function Modal({
 			const professoresResponse = await api.get<Professor[]>(
 				`/professorDisciplina/${idDisciplina}`,
 			);
-			setProfessores(professoresResponse.data);
+			const unicos = professoresResponse.data.filter(
+				(p, i, arr) =>
+					arr.findIndex((x) => x.idProfessor === p.idProfessor) === i,
+			);
+			setProfessores(unicos);
 		} catch (error) {
-			console.error("Erro ao carregar professores:", error);
 			setProfessores([]);
 			toast.error("Erro ao carregar professores");
 		} finally {
@@ -73,7 +89,8 @@ export default function Modal({
 		}
 	};
 
-	const getDiaSemanaNumero = (diaNome: string): number => {
+	// Mapeamento fixo: banco armazena 1=Segunda, 2=Terça, ..., 6=Sábado
+	const getDiaSemanaId = (diaNome: string): number | null => {
 		const diasMap: { [key: string]: number } = {
 			"Segunda-feira": 1,
 			"Terça-feira": 2,
@@ -81,14 +98,18 @@ export default function Modal({
 			"Quinta-feira": 4,
 			"Sexta-feira": 5,
 			Sábado: 6,
-			Domingo: 0,
 		};
-		return diasMap[diaNome] || 0;
+		return diasMap[diaNome] ?? null;
 	};
 
 	const handleSalvar = async () => {
 		if (!formData.professorId || !formData.disciplinaId) {
 			toast.error("Por favor, selecione professor e disciplina");
+			return;
+		}
+
+		if (!idGrade) {
+			toast.error("Nenhuma grade selecionada");
 			return;
 		}
 
@@ -107,22 +128,25 @@ export default function Modal({
 		// Extrair o número do semestre (ex: "1º Semestre" -> 1)
 		const semestreNumero = parseInt(semestre.replace("º Semestre", ""));
 
-		// Obter o número do dia da semana
-		const idDiaSemana = getDiaSemanaNumero(dia);
+		// Obter o ID do dia da semana do banco de dados
+		const idDiaSemana = getDiaSemanaId(dia);
+
+		if (!idDiaSemana) {
+			toast.error(`Dia da semana "${dia}" não encontrado no sistema`);
+			return;
+		}
 
 		// Construir conteúdo para exibição na célula
 		const conteudo = `${disciplinaSelecionada.codigoDisciplina} - ${disciplinaSelecionada.nomeDisciplina}\n${disciplinaSelecionada.tipoSala}\n${professorSelecionado.nomeProfessor} (${professorSelecionado.titulacao})`;
 
 		try {
 			const payload = {
-				idGrade: idGrade, // ID do semestre letivo
+				idGrade: idGrade,
 				idDisciplina: parseInt(formData.disciplinaId),
 				idProfessor: parseInt(formData.professorId),
-				idDiaSemana: idDiaSemana, // 1=Segunda, 2=Terça, etc
-				semestre: semestreNumero, // 1, 2, 3, 4, etc (semestre do curso)
+				idDiaSemana: idDiaSemana,
+				semestre: semestreNumero,
 			};
-
-			console.log("📤 Enviando payload:", payload);
 
 			await api.post("/celula", payload);
 			toast.success("Aula cadastrada com sucesso!");
@@ -223,8 +247,8 @@ export default function Modal({
 									{loadingProfessores
 										? "Carregando..."
 										: !formData.disciplinaId
-										? "Selecione disciplina"
-										: "Selecione professor"}
+											? "Selecione disciplina"
+											: "Selecione professor"}
 								</option>
 								{professores.map((professor) => (
 									<option

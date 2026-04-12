@@ -8,32 +8,46 @@ import FormCadastro from "@/components/FormCadastro";
 import api from "@/services/api";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
-import { Professor, Disciplina } from "@/interfaces/types";
+import { Professor, Curso } from "@/interfaces/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function VincularDisciplinaProfessor() {
+	const { usuario } = useAuth();
+	const isAdmin = usuario?.nomePerfil.toLowerCase() === "admin";
+	const cursoUsuario = usuario?.cursos?.[0]?.idCurso ?? 0;
+
+	const [cursos, setCursos] = useState<Curso[]>([]);
+	const [cursoSelecionado, setCursoSelecionado] = useState<number>(cursoUsuario);
 	const [disciplinasIds, setDisciplinasIds] = useState<number[]>([]);
 	const [professorId, setProfessorId] = useState<number | null>(null);
-	const [professores, setProfessores] = useState<Professor[]>([]); // Adicione esta linha
 	const [resetKey, setResetKey] = useState(0);
 	const [loading, setLoading] = useState(false);
-	const [loadingProfessores, setLoadingProfessores] = useState(false);
 
-	// Carregar professores ao montar o componente
+	// Admin: carregar todos os cursos
 	useEffect(() => {
-		const carregarProfessores = async () => {
-			try {
-				setLoadingProfessores(true);
-				const response = await api.get<Professor[]>("/professor");
-				setProfessores(response.data);
-			} catch (error) {
-				toast.error("Erro ao carregar professores");
-			} finally {
-				setLoadingProfessores(false);
-			}
-		};
+		if (isAdmin) {
+			const carregarCursos = async () => {
+				try {
+					const response = await api.get<Curso[]>("/curso");
+					setCursos(response.data);
+					if (response.data.length > 0 && !cursoSelecionado) {
+						setCursoSelecionado(response.data[0].idCurso);
+					}
+				} catch (error) {
+					toast.error("Erro ao carregar cursos");
+				}
+			};
+			carregarCursos();
+		}
+	}, [isAdmin]);
 
-		carregarProfessores();
-	}, []);
+	// Resetar seleções ao trocar de curso
+	const handleCursoChange = (novoCursoId: number) => {
+		setCursoSelecionado(novoCursoId);
+		setDisciplinasIds([]);
+		setProfessorId(null);
+		setResetKey((prev) => prev + 1);
+	};
 
 	const handleDisciplinasChange = (
 		disciplinasIds: number[],
@@ -59,16 +73,11 @@ export default function VincularDisciplinaProfessor() {
 		try {
 			setLoading(true);
 
-			console.log("📤 Iniciando cadastro de vínculos...");
-
-			// Cadastrar cada disciplina separadamente
 			for (const idDisciplina of disciplinasIds) {
 				const payload = {
 					idDisciplina: idDisciplina,
 					idProfessor: professorId,
 				};
-
-				console.log("📤 Enviando payload:", payload);
 				await api.post("/professorDisciplina", payload);
 			}
 
@@ -109,9 +118,29 @@ export default function VincularDisciplinaProfessor() {
 			<NavBar />
 			<div className='[&>div>div]:lg:max-w-3xl'>
 				<FormCadastro onSubmit={handleSubmit}>
+					{/* Seletor de Curso (apenas Admin) */}
+					{isAdmin && (
+						<div className='flex flex-col gap-2 mb-4'>
+							<label className='text-gray-800 font-semibold text-base sm:text-lg'>
+								Selecione o curso
+							</label>
+							<select
+								value={cursoSelecionado}
+								onChange={(e) => handleCursoChange(Number(e.target.value))}
+								className='w-full h-10 sm:h-12 border-2 border-gray-300 rounded-2xl px-3 sm:px-4 text-sm sm:text-base text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+							>
+								{cursos.map((curso) => (
+									<option key={curso.idCurso} value={curso.idCurso}>
+										{curso.nomeCurso}
+									</option>
+								))}
+							</select>
+						</div>
+					)}
+
 					<DisciplinaSelector
-						key={resetKey} // Força remontagem quando resetKey muda
-						courseId={3}
+						key={resetKey}
+						courseId={cursoSelecionado}
 						onChange={handleDisciplinasChange}
 					/>
 				</FormCadastro>

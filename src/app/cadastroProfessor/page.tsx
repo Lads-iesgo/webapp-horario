@@ -9,15 +9,39 @@ import SelectCadastro from "@/components/SelectCadastro";
 
 import api from "@/services/api";
 import toast from "react-hot-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function CadastroProfessor() {
+	const { usuario } = useAuth();
 	const [nomeProfessor, setNomeProfessor] = useState("");
 	const [email, setEmail] = useState("");
 	const [titulacao, setTitulacao] = useState("");
 	const [curriculoLattes, setCurriculoLattes] = useState("");
 	const [diasSelecionados, setDiasSelecionados] = useState<string[]>([]);
 	const [loading, setLoading] = useState(false);
+	const [cursos, setCursos] = useState<{ value: string; label: string }[]>([]);
+	const [idCursoSelecionado, setIdCursoSelecionado] = useState("");
+
+	const isAdmin = usuario?.nomePerfil.toLowerCase() === "admin";
+
+	// Buscar cursos disponíveis quando o usuário for Admin
+	useEffect(() => {
+		if (isAdmin) {
+			api
+				.get("/curso")
+				.then((res) => {
+					const opcoes = res.data.map((curso: any) => ({
+						value: String(curso.idCurso),
+						label: curso.nomeCurso,
+					}));
+					setCursos(opcoes);
+				})
+				.catch(() => {
+					toast.error("Erro ao carregar cursos");
+				});
+		}
+	}, [isAdmin]);
 
 	const opcoesTitulacao = [
 		{ value: "Graduado", label: "Graduado" },
@@ -56,6 +80,11 @@ export default function CadastroProfessor() {
 			return;
 		}
 
+		if (isAdmin && !idCursoSelecionado) {
+			toast.error("Selecione o curso para vincular o professor");
+			return;
+		}
+
 		if (diasSelecionados.length === 0) {
 			toast.error("Selecione pelo menos um dia de disponibilidade");
 			return;
@@ -65,19 +94,19 @@ export default function CadastroProfessor() {
 			setLoading(true);
 
 			// 1. Cadastrar o professor
-			const payloadProfessor = {
+			const payloadProfessor: any = {
 				nomeProfessor: nomeProfessor.trim(),
 				email: email.trim(),
 				titulacao: titulacao.trim(),
 				curriculo_lattes: curriculoLattes.trim() || null,
-				coordenador_idProfessor: null, // Definir como null ou um ID específico se necessário
 			};
 
-			console.log("📤 Enviando payload professor:", payloadProfessor);
+			// Admin envia idCurso para o backend resolver o coordenador
+			if (isAdmin) {
+				payloadProfessor.idCurso = Number(idCursoSelecionado);
+			}
 
 			const responseProfessor = await api.post("/professor", payloadProfessor);
-
-			console.log("✅ Resposta professor:", responseProfessor.data);
 
 			// 2. Buscar o ID do professor cadastrado
 			const idProfessor =
@@ -105,7 +134,6 @@ export default function CadastroProfessor() {
 						idDiaSemana: parseInt(idDiaSemana),
 					};
 
-					console.log("📤 Enviando disponibilidade:", payloadDisponibilidade);
 					await api.post("/disponibilidade", payloadDisponibilidade);
 				}
 			} else {
@@ -116,7 +144,6 @@ export default function CadastroProfessor() {
 						idDiaSemana: parseInt(idDiaSemana),
 					};
 
-					console.log("📤 Enviando disponibilidade:", payloadDisponibilidade);
 					await api.post("/disponibilidade", payloadDisponibilidade);
 				}
 			}
@@ -129,10 +156,8 @@ export default function CadastroProfessor() {
 			setTitulacao("");
 			setCurriculoLattes("");
 			setDiasSelecionados([]);
+			setIdCursoSelecionado("");
 		} catch (error: any) {
-			console.error("❌ ERRO completo:", error);
-			console.error("❌ Resposta da API:", error.response?.data);
-
 			let mensagemErro = "Erro ao cadastrar professor";
 
 			if (error.response?.data) {
@@ -147,8 +172,6 @@ export default function CadastroProfessor() {
 				mensagemErro = error.message;
 			}
 
-			console.error("📢 Mensagem de erro extraída:", mensagemErro);
-
 			toast.error(mensagemErro, {
 				duration: 5000,
 			});
@@ -162,6 +185,16 @@ export default function CadastroProfessor() {
 			<Header title='Cadastro de professor' />
 			<NavBar />
 			<FormCadastro onSubmit={handleSubmit}>
+				{isAdmin && (
+					<SelectCadastro
+						label='Curso *'
+						placeholder='Selecione o curso'
+						options={cursos}
+						value={idCursoSelecionado}
+						onChange={(e) => setIdCursoSelecionado(e.target.value)}
+						disabled={loading}
+					/>
+				)}
 				<InputCadastro
 					label='Nome do Professor *'
 					placeHolder='Ex: Sandir'

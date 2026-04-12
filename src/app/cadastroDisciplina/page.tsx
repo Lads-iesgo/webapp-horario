@@ -9,6 +9,7 @@ import FormCadastro from "@/components/FormCadastro";
 import api from "@/services/api";
 import toast from "react-hot-toast";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Curso {
 	idCurso: number;
@@ -16,6 +17,7 @@ interface Curso {
 }
 
 export default function CadastroDisciplina() {
+	const { usuario } = useAuth();
 	const [nomeDisciplina, setNomeDisciplina] = useState("");
 	const [idCurso, setIdCurso] = useState("");
 	const [codigoDisciplina, setCodigoDisciplina] = useState("");
@@ -26,6 +28,8 @@ export default function CadastroDisciplina() {
 	const [cursos, setCursos] = useState<Curso[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [loadingCursos, setLoadingCursos] = useState(true);
+
+	const isAdmin = usuario?.nomePerfil.toLowerCase() === "admin";
 
 	const modalidades = [
 		{ value: "Presencial", label: "Presencial" },
@@ -39,9 +43,23 @@ export default function CadastroDisciplina() {
 		{ value: "Sincrona", label: "Síncrona" },
 	];
 
+	// Coordenador: auto-resolver idCurso pelo curso onde é coordenador
 	useEffect(() => {
-		carregarCursos();
-	}, []);
+		if (!isAdmin && usuario) {
+			const cursoCoordenador = usuario.cursos.find(c => c.isCoordenador);
+			if (cursoCoordenador) {
+				setIdCurso(String(cursoCoordenador.idCurso));
+			}
+			setLoadingCursos(false);
+		}
+	}, [isAdmin, usuario]);
+
+	// Admin: carregar todos os cursos para o dropdown
+	useEffect(() => {
+		if (isAdmin) {
+			carregarCursos();
+		}
+	}, [isAdmin]);
 
 	const carregarCursos = async () => {
 		try {
@@ -64,7 +82,7 @@ export default function CadastroDisciplina() {
 		}
 
 		if (!idCurso) {
-			toast.error("Selecione um curso");
+			toast.error(isAdmin ? "Selecione um curso" : "Nenhum curso vinculado ao seu perfil de coordenador");
 			return;
 		}
 
@@ -159,19 +177,21 @@ export default function CadastroDisciplina() {
 					disabled={loading}
 				/>
 
-				<SelectCadastro
-					label='Curso da Disciplina *'
-					value={idCurso}
-					onChange={(e) => setIdCurso(e.target.value)}
-					disabled={loading || loadingCursos}
-					placeholder={
-						loadingCursos ? "Carregando cursos..." : "Selecione um curso"
-					}
-					options={cursos.map((curso) => ({
-						value: curso.idCurso,
-						label: curso.nomeCurso,
-					}))}
-				/>
+				{isAdmin && (
+					<SelectCadastro
+						label='Curso da Disciplina *'
+						value={idCurso}
+						onChange={(e) => setIdCurso(e.target.value)}
+						disabled={loading || loadingCursos}
+						placeholder={
+							loadingCursos ? "Carregando cursos..." : "Selecione um curso"
+						}
+						options={cursos.map((curso) => ({
+							value: curso.idCurso,
+							label: curso.nomeCurso,
+						}))}
+					/>
+				)}
 
 				<InputCadastro
 					label='Semestre da Disciplina *'

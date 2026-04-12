@@ -33,12 +33,17 @@ export default function DisciplinaSelector({
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	// Carregar professores ao montar o componente
+	// Carregar professores do curso selecionado
 	useEffect(() => {
+		if (!courseId) {
+			setProfessores([]);
+			return;
+		}
+
 		const carregarProfessores = async () => {
 			try {
 				const response: AxiosResponse<Professor[]> = await api.get(
-					"/professor",
+					`/professor/curso/${courseId}`,
 				);
 
 				const professoresData: Professor[] = Array.isArray(response.data)
@@ -52,13 +57,12 @@ export default function DisciplinaSelector({
 
 				setProfessores(professoresUnicos);
 			} catch (err) {
-				console.error("Erro ao carregar professores:", err);
 				setProfessores([]);
 			}
 		};
 
 		carregarProfessores();
-	}, []);
+	}, [courseId]);
 
 	// Carregar dados do curso e disciplinas
 	useEffect(() => {
@@ -103,7 +107,6 @@ export default function DisciplinaSelector({
 
 				setDisciplinas(disciplinasUnicas || []);
 			} catch (err: any) {
-				console.error("Erro ao carregar dados:", err);
 				setError("Erro ao carregar dados");
 			} finally {
 				setLoading(false);
@@ -139,16 +142,18 @@ export default function DisciplinaSelector({
 		onChange?.(selecionados, professorId);
 	};
 
-	// Agrupar disciplinas por semestre
-	const disciplinasPorSemestre = disciplinas.reduce((acc, disc) => {
-		// Se semestreDisciplina não existe, atribuir ao semestre 1 como fallback
-		const semestre = disc.semestreDisciplina || 1;
-		if (!acc[semestre]) {
-			acc[semestre] = [];
-		}
-		acc[semestre].push(disc);
-		return acc;
-	}, {} as Record<number, Disciplina[]>);
+	// Agrupar disciplinas por semestre (periodo vem do curso_disciplina, semestreDisciplina é fallback)
+	const disciplinasPorSemestre = disciplinas.reduce(
+		(acc, disc) => {
+			const semestre = (disc as any).periodo ?? disc.semestreDisciplina ?? 1;
+			if (!acc[semestre]) {
+				acc[semestre] = [];
+			}
+			acc[semestre].push(disc);
+			return acc;
+		},
+		{} as Record<number, Disciplina[]>,
+	);
 
 	// Gerar array de semestres baseado na duração do curso
 	const semestres = curso
