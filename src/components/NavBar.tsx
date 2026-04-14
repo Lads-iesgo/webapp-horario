@@ -37,7 +37,7 @@ export default function NavBar() {
 			{/* Overlay para mobile */}
 			{isOpen && (
 				<div
-					className='lg:hidden fixed inset-0 bg-black/50 z-40'
+					className='lg:hidden fixed inset-0 bg-black/50 z-30'
 					onClick={() => setIsOpen(false)}
 				/>
 			)}
@@ -45,7 +45,7 @@ export default function NavBar() {
 			{/* NavBar */}
 			<div
 				className={`
-                    fixed bg-blue-900 top-0 h-screen overflow-y-auto z-50 transition-transform duration-300
+					fixed bg-blue-900 top-0 h-screen overflow-y-auto z-40 transition-transform duration-300
                     w-72 left-0
                     ${isOpen ? "translate-x-0" : "-translate-x-full"}
                     lg:translate-x-0
@@ -107,9 +107,7 @@ export default function NavBar() {
 											onClick={() => setIsOpen(false)}
 											className='flex items-center text-gray-200 hover:bg-blue-800 rounded-lg px-4 py-3 transition-colors'
 										>
-											<span className='text-lg'>
-												Cadastro Curso
-											</span>
+											<span className='text-lg'>Cadastro Curso</span>
 										</Link>
 									</li>
 									<li>
@@ -118,9 +116,7 @@ export default function NavBar() {
 											onClick={() => setIsOpen(false)}
 											className='flex items-center text-gray-200 hover:bg-blue-800 rounded-lg px-4 py-3 transition-colors'
 										>
-											<span className='text-lg'>
-												Cadastrar Sala
-											</span>
+											<span className='text-lg'>Cadastrar Sala</span>
 										</Link>
 									</li>
 									<li>
@@ -129,9 +125,7 @@ export default function NavBar() {
 											onClick={() => setIsOpen(false)}
 											className='flex items-center text-gray-200 hover:bg-blue-800 rounded-lg px-4 py-3 transition-colors'
 										>
-											<span className='text-lg'>
-												Professores
-											</span>
+											<span className='text-lg'>Professores</span>
 										</Link>
 									</li>
 								</>
@@ -144,9 +138,7 @@ export default function NavBar() {
 											onClick={() => setIsOpen(false)}
 											className='flex items-center text-gray-200 hover:bg-blue-800 rounded-lg px-4 py-3 transition-colors'
 										>
-											<span className='text-lg'>
-												Cadastro Disciplina
-											</span>
+											<span className='text-lg'>Cadastro Disciplina</span>
 										</Link>
 									</li>
 									<li>
@@ -155,9 +147,7 @@ export default function NavBar() {
 											onClick={() => setIsOpen(false)}
 											className='flex items-center text-gray-200 hover:bg-blue-800 rounded-lg px-4 py-3 transition-colors'
 										>
-											<span className='text-lg'>
-												Cadastro Professor
-											</span>
+											<span className='text-lg'>Cadastro Professor</span>
 										</Link>
 									</li>
 									<li>

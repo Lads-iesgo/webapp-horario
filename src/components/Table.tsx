@@ -120,7 +120,9 @@ export default function Tabela() {
 
 		try {
 			setLoadingGrades(true);
-			const response = await api.get<Grade[]>(`/grade?idCurso=${cursoSelecionado}`);
+			const response = await api.get<Grade[]>(
+				`/grade?idCurso=${cursoSelecionado}`,
+			);
 			const gradesDoCurso = response.data;
 			setGrades(gradesDoCurso);
 
@@ -233,24 +235,30 @@ export default function Tabela() {
 		Promise.all([
 			api.get<Grade[]>(`/grade?idCurso=${cursoSelecionado}`),
 			api.get(`/curso/${cursoSelecionado}`),
-		]).then(([gradesRes, cursoRes]) => {
-			const gradesDoCurso = gradesRes.data;
-			setGrades(gradesDoCurso);
-			if (gradesDoCurso.length > 0) {
-				const maisRecente = [...gradesDoCurso].sort(
-					(a, b) => b.anoLetivo - a.anoLetivo || b.semestreLetivo - a.semestreLetivo,
-				)[0];
-				setGradeSelecionada(maisRecente.idGrade);
-			} else {
-				setGradeSelecionada(null);
-			}
-			const dados = Array.isArray(cursoRes.data) ? cursoRes.data[0] : cursoRes.data;
-			if (dados?.duracaoSemestres) setDuracaoSemestres(dados.duracaoSemestres);
-			setLoadingGrades(false);
-		}).catch(() => {
-			toast.error("Erro ao carregar dados do curso");
-			setLoadingGrades(false);
-		});
+		])
+			.then(([gradesRes, cursoRes]) => {
+				const gradesDoCurso = gradesRes.data;
+				setGrades(gradesDoCurso);
+				if (gradesDoCurso.length > 0) {
+					const maisRecente = [...gradesDoCurso].sort(
+						(a, b) =>
+							b.anoLetivo - a.anoLetivo || b.semestreLetivo - a.semestreLetivo,
+					)[0];
+					setGradeSelecionada(maisRecente.idGrade);
+				} else {
+					setGradeSelecionada(null);
+				}
+				const dados = Array.isArray(cursoRes.data)
+					? cursoRes.data[0]
+					: cursoRes.data;
+				if (dados?.duracaoSemestres)
+					setDuracaoSemestres(dados.duracaoSemestres);
+				setLoadingGrades(false);
+			})
+			.catch(() => {
+				toast.error("Erro ao carregar dados do curso");
+				setLoadingGrades(false);
+			});
 	}, [cursoSelecionado]);
 
 	// Recarregar células quando a grade selecionada mudar
@@ -377,7 +385,7 @@ export default function Tabela() {
 
 	if (loadingGrades) {
 		return (
-			<div className='flex justify-center items-center min-h-screen lg:ml-72'>
+			<div className='flex justify-center items-center h-full'>
 				<div className='text-xl'>Carregando grades...</div>
 			</div>
 		);
@@ -385,7 +393,7 @@ export default function Tabela() {
 
 	if (grades.length === 0) {
 		return (
-			<div className='flex flex-col justify-center items-center min-h-screen lg:ml-72 gap-4'>
+			<div className='flex flex-col justify-center items-center h-full gap-4'>
 				<div className='text-xl text-gray-600'>
 					Nenhuma grade encontrada para o seu curso.
 				</div>
@@ -408,9 +416,9 @@ export default function Tabela() {
 	}
 
 	return (
-		<div className='flex flex-col items-center justify-center min-h-screen p-2 sm:p-4 lg:ml-72 pt-20'>
+		<div className='flex flex-col items-center h-full w-full p-2 sm:p-3 overflow-hidden'>
 			{/* Seletores */}
-			<div className='mb-4 flex flex-col sm:flex-row items-center gap-3'>
+			<div className='mb-3 flex flex-col sm:flex-row items-center gap-3'>
 				{/* Seletor de Curso (apenas Admin) */}
 				{isAdmin && (
 					<>
@@ -462,60 +470,62 @@ export default function Tabela() {
 			</div>
 
 			{loading && (
-				<div className='mb-4 text-gray-500 text-sm'>Carregando células...</div>
+				<div className='mb-3 text-gray-500 text-sm'>Carregando células...</div>
 			)}
 
-			<div className='w-full overflow-x-auto shadow-lg max-w-[95vw] lg:max-w-[1200px]'>
-				<table className='border-separate border-spacing-0 border text-center w-full'>
-					<thead>
-						<tr className='bg-blue-900 text-white'>
-							<th
-								className='p-1 sm:p-2 h-16 sm:h-20 border border-black text-xs sm:text-sm lg:text-base sticky left-0 z-20 bg-blue-900'
-								style={{ minWidth: "188px", width: "188px" }}
-							>
-								Dia
-							</th>
-							{semestres.map((s) => (
+			<div className='w-full flex-1 overflow-hidden flex justify-center'>
+				<div className='w-full overflow-x-auto shadow-lg max-w-[90vw] lg:max-w-[1000px]'>
+					<table className='border-separate border-spacing-0 border text-center w-full'>
+						<thead>
+							<tr className='bg-blue-900 text-white'>
 								<th
-									key={s}
-									className='p-1 sm:p-2 h-16 sm:h-20 border border-black text-xs sm:text-sm lg:text-base'
-									style={{ width: `${100 / semestres.length}%` }}
+									className='p-1 sm:p-2 h-12 sm:h-16 border border-black text-xs sm:text-sm lg:text-base sticky left-0 z-20 bg-blue-900'
+									style={{ minWidth: "160px", width: "160px" }}
 								>
-									{s}
+									Dia
 								</th>
-							))}
-						</tr>
-					</thead>
-					<tbody>
-						{dias.map((dia) => (
-							<tr key={dia}>
-								<td
-									className='border p-1 sm:p-2 font-semibold bg-gray-50 sticky left-0 z-10 h-20 sm:h-24 text-xs sm:text-sm lg:text-base'
-									style={{ minWidth: "188px", width: "188px" }}
-								>
-									<div className='break-words'>{dia}</div>
-								</td>
-								{semestres.map((sem) => {
-									const chave = `${dia}-${sem}`;
-									const conteudo = dados[chave];
-									return (
-										<td
-											key={chave}
-											onClick={() => handleCellClick(dia, sem)}
-											className='border p-1 sm:p-2 hover:bg-blue-50 cursor-pointer h-20 sm:h-24 overflow-hidden'
-											style={{ width: `${100 / semestres.length}%` }}
-											title={conteudo || chave}
-										>
-											<div className='h-full flex items-center justify-center overflow-auto text-[10px] sm:text-xs leading-tight whitespace-pre-line break-words'>
-												{conteudo || ""}
-											</div>
-										</td>
-									);
-								})}
+								{semestres.map((s) => (
+									<th
+										key={s}
+										className='p-1 sm:p-2 h-12 sm:h-16 border border-black text-xs sm:text-sm lg:text-base'
+										style={{ width: `${100 / semestres.length}%` }}
+									>
+										{s}
+									</th>
+								))}
 							</tr>
-						))}
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							{dias.map((dia) => (
+								<tr key={dia}>
+									<td
+										className='border p-1 sm:p-2 font-semibold bg-gray-50 sticky left-0 z-10 h-16 sm:h-20 text-xs sm:text-sm lg:text-base'
+										style={{ minWidth: "160px", width: "160px" }}
+									>
+										<div className='break-words'>{dia}</div>
+									</td>
+									{semestres.map((sem) => {
+										const chave = `${dia}-${sem}`;
+										const conteudo = dados[chave];
+										return (
+											<td
+												key={chave}
+												onClick={() => handleCellClick(dia, sem)}
+												className='border p-1 sm:p-2 hover:bg-blue-50 cursor-pointer h-16 sm:h-20 overflow-hidden'
+												style={{ width: `${100 / semestres.length}%` }}
+												title={conteudo || chave}
+											>
+												<div className='h-full flex items-center justify-center overflow-auto text-[10px] sm:text-xs leading-tight whitespace-pre-line break-words'>
+													{conteudo || ""}
+												</div>
+											</td>
+										);
+									})}
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
 			</div>
 
 			{/* Modal de Criação */}

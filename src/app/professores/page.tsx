@@ -30,7 +30,9 @@ export default function Professores() {
 
 	// Modal
 	const [modalAberto, setModalAberto] = useState(false);
-	const [professorSelecionado, setProfessorSelecionado] = useState<number | null>(null);
+	const [professorSelecionado, setProfessorSelecionado] = useState<
+		number | null
+	>(null);
 
 	// Carregar cursos
 	useEffect(() => {
@@ -59,11 +61,13 @@ export default function Professores() {
 			try {
 				setLoadingProfessores(true);
 				const response = await api.get<Professor[]>(
-					`/professor/curso/${cursoSelecionado}`
+					`/professor/curso/${cursoSelecionado}`,
 				);
 				const data = Array.isArray(response.data) ? response.data : [];
 				// Deduplicar por idProfessor
-				const unicos = [...new Map(data.map((p) => [p.idProfessor, p])).values()];
+				const unicos = [
+					...new Map(data.map((p) => [p.idProfessor, p])).values(),
+				];
 				setProfessores(unicos);
 			} catch (error) {
 				toast.error("Erro ao carregar professores");
@@ -91,26 +95,26 @@ export default function Professores() {
 
 	return (
 		<>
-			<Header title="Professores" />
+			<Header title='Professores' />
 			<NavBar />
 
-			<div className="lg:ml-72 pt-20 px-4 sm:px-6 lg:px-8 pb-8">
-				<div className="max-w-4xl mx-auto flex flex-col gap-6">
+			<div className='lg:ml-72 px-4 sm:px-6 lg:px-8 pb-8'>
+				<div className='max-w-4xl mx-auto flex flex-col gap-6'>
 					{/* Selecao de curso */}
 					<section>
-						<h2 className="text-gray-800 font-semibold text-base sm:text-lg mb-3">
+						<h2 className='text-gray-800 font-semibold text-base sm:text-lg mb-3'>
 							Selecione o curso
 						</h2>
 						{loadingCursos ? (
-							<span className="text-sm text-gray-500">
+							<span className='text-sm text-gray-500'>
 								Carregando cursos...
 							</span>
 						) : (
-							<div className="flex flex-wrap gap-3">
+							<div className='flex flex-wrap gap-3'>
 								{cursos.map((curso) => (
 									<button
 										key={curso.idCurso}
-										type="button"
+										type='button'
 										onClick={() => setCursoSelecionado(curso.idCurso)}
 										className={`px-6 py-2.5 rounded-2xl border-2 transition-colors font-medium text-sm sm:text-base
 											${
@@ -130,35 +134,35 @@ export default function Professores() {
 					{/* Lista de professores */}
 					<section>
 						{!cursoSelecionado ? (
-							<div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center">
-								<span className="text-gray-500 text-sm sm:text-base">
+							<div className='border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center'>
+								<span className='text-gray-500 text-sm sm:text-base'>
 									Selecione um curso acima para ver os professores
 								</span>
 							</div>
 						) : loadingProfessores ? (
-							<div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center">
-								<span className="text-gray-500 text-sm">
+							<div className='border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center'>
+								<span className='text-gray-500 text-sm'>
 									Carregando professores...
 								</span>
 							</div>
 						) : professores.length > 0 ? (
-							<div className="border-2 border-gray-300 rounded-2xl p-6 bg-gray-50">
-								<h3 className="text-gray-800 font-semibold text-base sm:text-lg mb-4">
+							<div className='border-2 border-gray-300 rounded-2xl p-6 bg-gray-50'>
+								<h3 className='text-gray-800 font-semibold text-base sm:text-lg mb-4'>
 									Professores do curso ({professores.length})
 								</h3>
-								<div className="flex flex-wrap gap-3">
+								<div className='flex flex-wrap gap-3'>
 									{professores.map((prof) => (
 										<button
 											key={prof.idProfessor}
-											type="button"
+											type='button'
 											onClick={() => handleProfessorClick(prof.idProfessor)}
-											className="flex flex-col items-start px-5 py-3 rounded-2xl border-2 border-gray-800 bg-white text-left hover:bg-blue-800 hover:text-white hover:border-blue-800 transition-colors group"
+											className='flex flex-col items-start px-5 py-3 rounded-2xl border-2 border-gray-800 bg-white text-left hover:bg-blue-800 hover:text-white hover:border-blue-800 transition-colors group'
 										>
-											<span className="font-medium text-sm sm:text-base">
+											<span className='font-medium text-sm sm:text-base'>
 												{prof.nomeProfessor}
 											</span>
 											{prof.titulacao && (
-												<span className="text-xs text-gray-500 group-hover:text-blue-200">
+												<span className='text-xs text-gray-500 group-hover:text-blue-200'>
 													{titulacaoLabel[prof.titulacao] || prof.titulacao}
 												</span>
 											)}
@@ -167,8 +171,8 @@ export default function Professores() {
 								</div>
 							</div>
 						) : (
-							<div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center">
-								<span className="text-gray-500 text-sm">
+							<div className='border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center'>
+								<span className='text-gray-500 text-sm'>
 									Nenhum professor vinculado a este curso
 								</span>
 							</div>

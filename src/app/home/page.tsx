@@ -4,10 +4,12 @@ import Header from "@/components/Header";
 
 export default function Home() {
 	return (
-		<>
+		<div className='h-screen overflow-hidden'>
 			<Header title='Home' />
 			<NavBar />
-			<Table />
-		</>
+			<main className='h-[calc(100vh-4rem)] lg:ml-72 overflow-hidden'>
+				<Table />
+			</main>
+		</div>
 	);
 }
