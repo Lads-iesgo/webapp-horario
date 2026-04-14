@@ -58,10 +58,7 @@ export default function Modal({
 			const filtradas = dados.filter(
 				(d: any) => (d.periodo ?? d.semestreDisciplina) === semestreNumero,
 			);
-			const unicas = filtradas.filter(
-				(d, i, arr) =>
-					arr.findIndex((x) => x.idDisciplina === d.idDisciplina) === i,
-			);
+			const unicas = [...new Map(filtradas.map((d) => [d.idDisciplina, d])).values()];
 			setDisciplinas(unicas);
 		} catch (error) {
 			toast.error("Erro ao carregar disciplinas");
@@ -76,10 +73,7 @@ export default function Modal({
 			const professoresResponse = await api.get<Professor[]>(
 				`/professorDisciplina/${idDisciplina}`,
 			);
-			const unicos = professoresResponse.data.filter(
-				(p, i, arr) =>
-					arr.findIndex((x) => x.idProfessor === p.idProfessor) === i,
-			);
+			const unicos = [...new Map(professoresResponse.data.map((p) => [p.idProfessor, p])).values()];
 			setProfessores(unicos);
 		} catch (error) {
 			setProfessores([]);

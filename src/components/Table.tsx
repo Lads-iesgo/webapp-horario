@@ -1,6 +1,6 @@
 "use client";
 import api from "@/services/api";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -63,12 +63,18 @@ export default function Tabela() {
 	const isProfessor = usuario?.nomePerfil.toLowerCase() === "professor";
 
 	// Determinar semestres com base no semestreLetivo da grade selecionada
-	const gradeAtual = grades.find((g) => g.idGrade === gradeSelecionada);
+	const gradeAtual = useMemo(
+		() => grades.find((g) => g.idGrade === gradeSelecionada),
+		[grades, gradeSelecionada],
+	);
 	const apenasImpares = gradeAtual ? gradeAtual.semestreLetivo === 1 : true;
-	const semestres = gerarSemestres(duracaoSemestres, apenasImpares);
+	const semestres = useMemo(
+		() => gerarSemestres(duracaoSemestres, apenasImpares),
+		[duracaoSemestres, apenasImpares],
+	);
 
 	// Normalizar dia_semana do backend para o formato da tabela
-	const normalizarDiaSemana = (dia: string | number): string => {
+	const normalizarDiaSemana = useCallback((dia: string | number): string => {
 		const valor = String(dia).toLowerCase().trim();
 		const mapa: { [key: string]: string } = {
 			segunda: "Segunda-feira",
@@ -92,7 +98,7 @@ export default function Tabela() {
 			"6": "Sábado",
 		};
 		return mapa[valor] || "";
-	};
+	}, []);
 
 	// Carregar todos os cursos (apenas para admin)
 	const carregarCursos = async () => {
@@ -114,11 +120,8 @@ export default function Tabela() {
 
 		try {
 			setLoadingGrades(true);
-			const response = await api.get<Grade[]>("/grade");
-			// Filtrar grades pelo curso selecionado
-			const gradesDoCurso = response.data.filter(
-				(g) => Number(g.idCurso) === cursoSelecionado,
-			);
+			const response = await api.get<Grade[]>(`/grade?idCurso=${cursoSelecionado}`);
+			const gradesDoCurso = response.data;
 			setGrades(gradesDoCurso);
 
 			// Selecionar a grade mais recente automaticamente
@@ -225,18 +228,29 @@ export default function Tabela() {
 
 	// Carregar duracao do curso e grades quando o curso selecionado mudar
 	useEffect(() => {
-		if (cursoSelecionado) {
-			carregarGrades();
-			api
-				.get(`/curso/${cursoSelecionado}`)
-				.then((res) => {
-					const dados = Array.isArray(res.data) ? res.data[0] : res.data;
-					if (dados?.duracaoSemestres) {
-						setDuracaoSemestres(dados.duracaoSemestres);
-					}
-				})
-				.catch(() => {});
-		}
+		if (!cursoSelecionado) return;
+		setLoadingGrades(true);
+		Promise.all([
+			api.get<Grade[]>(`/grade?idCurso=${cursoSelecionado}`),
+			api.get(`/curso/${cursoSelecionado}`),
+		]).then(([gradesRes, cursoRes]) => {
+			const gradesDoCurso = gradesRes.data;
+			setGrades(gradesDoCurso);
+			if (gradesDoCurso.length > 0) {
+				const maisRecente = [...gradesDoCurso].sort(
+					(a, b) => b.anoLetivo - a.anoLetivo || b.semestreLetivo - a.semestreLetivo,
+				)[0];
+				setGradeSelecionada(maisRecente.idGrade);
+			} else {
+				setGradeSelecionada(null);
+			}
+			const dados = Array.isArray(cursoRes.data) ? cursoRes.data[0] : cursoRes.data;
+			if (dados?.duracaoSemestres) setDuracaoSemestres(dados.duracaoSemestres);
+			setLoadingGrades(false);
+		}).catch(() => {
+			toast.error("Erro ao carregar dados do curso");
+			setLoadingGrades(false);
+		});
 	}, [cursoSelecionado]);
 
 	// Recarregar células quando a grade selecionada mudar
@@ -298,8 +312,8 @@ export default function Tabela() {
 		setModalAberto(false);
 		setModalData(null);
 
-		// Recarregar os dados da API para garantir sincronização
-		await carregarDados();
+		// Sincronizar em background sem bloquear a UI
+		carregarDados();
 	};
 
 	const handleFecharModal = () => {

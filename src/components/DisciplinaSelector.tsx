@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "@/services/api";
 import {
 	Disciplina,
@@ -50,10 +50,7 @@ export default function DisciplinaSelector({
 					? response.data
 					: [];
 
-				const professoresUnicos = professoresData.filter(
-					(prof, index, self) =>
-						index === self.findIndex((p) => p.idProfessor === prof.idProfessor),
-				);
+				const professoresUnicos = [...new Map(professoresData.map((p) => [p.idProfessor, p])).values()];
 
 				setProfessores(professoresUnicos);
 			} catch (err) {
@@ -99,11 +96,7 @@ export default function DisciplinaSelector({
 					? disciplinasRes.data
 					: [];
 
-				const disciplinasUnicas = disciplinasArray.filter(
-					(disc, index, self) =>
-						index ===
-						self.findIndex((d) => d.idDisciplina === disc.idDisciplina),
-				);
+				const disciplinasUnicas = [...new Map(disciplinasArray.map((d) => [d.idDisciplina, d])).values()];
 
 				setDisciplinas(disciplinasUnicas || []);
 			} catch (err: any) {
@@ -116,64 +109,70 @@ export default function DisciplinaSelector({
 		carregarDados();
 	}, [courseId]);
 
-	const toggle = (id: number) => {
-		const novo = selecionados.includes(id)
-			? selecionados.filter((i) => i !== id)
-			: [...selecionados, id];
-		setSelecionados(novo);
+	const toggle = useCallback((id: number) => {
+		setSelecionados((prev) => {
+			const novo = prev.includes(id)
+				? prev.filter((i) => i !== id)
+				: [...prev, id];
+			onChange?.(novo, professorSelecionado);
+			return novo;
+		});
+	}, [professorSelecionado, onChange]);
 
-		// Chamar onChange com a assinatura correta: (disciplinasIds, professorId)
-		onChange?.(novo, professorSelecionado);
-	};
+	const removerDisciplina = useCallback((id: number) => {
+		setSelecionados((prev) => {
+			const novo = prev.filter((i) => i !== id);
+			onChange?.(novo, professorSelecionado);
+			return novo;
+		});
+	}, [professorSelecionado, onChange]);
 
-	const removerDisciplina = (id: number) => {
-		const novo = selecionados.filter((i) => i !== id);
-		setSelecionados(novo);
-
-		// Chamar onChange com a assinatura correta: (disciplinasIds, professorId)
-		onChange?.(novo, professorSelecionado);
-	};
-
-	const handleProfessorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+	const handleProfessorChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
 		const professorId = e.target.value ? Number(e.target.value) : null;
 		setProfessorSelecionado(professorId);
-
-		// Notificar a mudança do professor
 		onChange?.(selecionados, professorId);
-	};
+	}, [selecionados, onChange]);
 
 	// Agrupar disciplinas por semestre (periodo vem do curso_disciplina, semestreDisciplina é fallback)
-	const disciplinasPorSemestre = disciplinas.reduce(
-		(acc, disc) => {
-			const semestre = (disc as any).periodo ?? disc.semestreDisciplina ?? 1;
-			if (!acc[semestre]) {
-				acc[semestre] = [];
-			}
-			acc[semestre].push(disc);
-			return acc;
-		},
-		{} as Record<number, Disciplina[]>,
-	);
+	const disciplinasPorSemestre = useMemo(() => {
+		return disciplinas.reduce(
+			(acc, disc) => {
+				const semestre = (disc as any).periodo ?? disc.semestreDisciplina ?? 1;
+				if (!acc[semestre]) {
+					acc[semestre] = [];
+				}
+				acc[semestre].push(disc);
+				return acc;
+			},
+			{} as Record<number, Disciplina[]>,
+		);
+	}, [disciplinas]);
 
 	// Gerar array de semestres baseado na duração do curso
-	const semestres = curso
-		? Array.from({ length: curso.duracaoSemestres }, (_, i) => i + 1)
-		: [];
+	const semestres = useMemo(() => {
+		return curso
+			? Array.from({ length: curso.duracaoSemestres }, (_, i) => i + 1)
+			: [];
+	}, [curso]);
 
 	// Filtrar disciplinas do semestre selecionado
-	const disciplinasFiltradas = semestreSelecionado
-		? disciplinasPorSemestre[semestreSelecionado] || []
-		: [];
+	const disciplinasFiltradas = useMemo(() => {
+		return semestreSelecionado
+			? disciplinasPorSemestre[semestreSelecionado] || []
+			: [];
+	}, [semestreSelecionado, disciplinasPorSemestre]);
 
 	// Obter disciplinas selecionadas
-	const disciplinasSelecionadas = disciplinas.filter((d) =>
-		selecionados.includes(d.idDisciplina),
-	);
+	const disciplinasSelecionadas = useMemo(() => {
+		return disciplinas.filter((d) => selecionados.includes(d.idDisciplina));
+	}, [disciplinas, selecionados]);
 
 	// Obter nome do professor selecionado
-	const professorSelecionadoNome = professores.find(
-		(p) => p.idProfessor === professorSelecionado,
-	)?.nomeProfessor;
+	const professorSelecionadoNome = useMemo(() => {
+		return professores.find(
+			(p) => p.idProfessor === professorSelecionado,
+		)?.nomeProfessor;
+	}, [professores, professorSelecionado]);
 
 	if (error) {
 		return <span className='text-sm text-red-600'>{error}</span>;

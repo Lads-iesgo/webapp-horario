@@ -61,8 +61,8 @@ export default function ModalProfessor({
 				const [profRes, dispRes, discRes, celRes] = await Promise.allSettled([
 					api.get(`/professor/${idProfessor}`),
 					api.get(`/disponibilidade/${idProfessor}`),
-					api.get("/professorDisciplina"),
-					api.get("/celula"),
+					api.get(`/professorDisciplina/professor/${idProfessor}`),
+					api.get(`/celula/professor/${idProfessor}`),
 				]);
 
 				if (profRes.status === "fulfilled") {
@@ -78,33 +78,29 @@ export default function ModalProfessor({
 				}
 
 				if (discRes.status === "fulfilled") {
-					const todasDisc: any[] = Array.isArray(discRes.value.data)
+					const discs: any[] = Array.isArray(discRes.value.data)
 						? discRes.value.data
 						: [];
 					setDisciplinas(
-						todasDisc
-							.filter((d) => d.idProfessor === idProfessor)
-							.map((d) => ({
-								idDisciplina: d.idDisciplina,
-								nomeDisciplina: d.nomeDisciplina,
-							})),
+						discs.map((d) => ({
+							idDisciplina: d.idDisciplina,
+							nomeDisciplina: d.nomeDisciplina,
+						})),
 					);
 				} else {
 					setDisciplinas([]);
 				}
 
 				if (celRes.status === "fulfilled") {
-					const todasCel: any[] = Array.isArray(celRes.value.data)
+					const cels: any[] = Array.isArray(celRes.value.data)
 						? celRes.value.data
 						: [];
 					setAlocacoes(
-						todasCel
-							.filter((c) => c.idProfessor === idProfessor)
-							.map((c) => ({
-								disciplina: c.disciplina || c.nomeDisciplina,
-								dia_semana: c.dia_semana || c.diaSemana,
-								curso: c.curso || c.nomeCurso,
-							})),
+						cels.map((c) => ({
+							disciplina: c.disciplina || c.nomeDisciplina,
+							dia_semana: c.dia_semana || c.diaSemana,
+							curso: c.curso || c.nomeCurso,
+						})),
 					);
 				} else {
 					setAlocacoes([]);

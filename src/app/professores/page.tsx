@@ -63,10 +63,7 @@ export default function Professores() {
 				);
 				const data = Array.isArray(response.data) ? response.data : [];
 				// Deduplicar por idProfessor
-				const unicos = data.filter(
-					(prof, index, self) =>
-						index === self.findIndex((p) => p.idProfessor === prof.idProfessor)
-				);
+				const unicos = [...new Map(data.map((p) => [p.idProfessor, p])).values()];
 				setProfessores(unicos);
 			} catch (error) {
 				toast.error("Erro ao carregar professores");
