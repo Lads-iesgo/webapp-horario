@@ -47,15 +47,19 @@ export default function Tabela() {
 	const [grades, setGrades] = useState<Grade[]>([]);
 	const [gradeSelecionada, setGradeSelecionada] = useState<number | null>(null);
 	const [dados, setDados] = useState<{ [key: string]: string }>({});
-	const [celulasMap, setCelulasMap] = useState<{ [key: string]: number }>({});
+	const [celulasMap, setCelulasMap] = useState<{ [key: string]: { idCelula: number; idDisciplina: number; idProfessor: number } }>({});
 	const [loading, setLoading] = useState(true);
 	const [loadingGrades, setLoadingGrades] = useState(true);
 	const [modalAberto, setModalAberto] = useState(false);
 	const [modalDeleteAberto, setModalDeleteAberto] = useState(false);
 	const [modalData, setModalData] = useState<ModalData | null>(null);
-	const [celulaParaDeletar, setCelulaParaDeletar] = useState<{
+	const [celulaParaEditar, setCelulaParaEditar] = useState<{
 		id: number;
 		conteudo: string;
+		idDisciplina: number;
+		idProfessor: number;
+		dia: string;
+		semestre: string;
 	} | null>(null);
 	const [criandoGrade, setCriandoGrade] = useState(false);
 	const [duracaoSemestres, setDuracaoSemestres] = useState<number>(8);
@@ -165,7 +169,7 @@ export default function Tabela() {
 
 			// Mapear os dados da API para o formato do estado
 			const dadosMapeados: { [key: string]: string } = {};
-			const celulasIdMap: { [key: string]: number } = {};
+			const celulasIdMap: { [key: string]: { idCelula: number; idDisciplina: number; idProfessor: number } } = {};
 
 			celulasGrade.forEach((celula: CelulaViewInterface) => {
 				// Normalizar dia_semana do backend
@@ -181,9 +185,13 @@ export default function Tabela() {
 				// Criar a chave usando dia_semana e semestre
 				const chave = `${diaSemana}-${semestreNumero}º Semestre`;
 
-				// Armazenar o ID da célula
+				// Armazenar os detalhes da célula
 				if (celula.idCelula !== undefined && celula.idCelula !== null) {
-					celulasIdMap[chave] = celula.idCelula;
+					celulasIdMap[chave] = {
+						idCelula: celula.idCelula,
+						idDisciplina: celula.idDisciplina,
+						idProfessor: celula.idProfessor,
+					};
 				}
 
 				// Construir o conteúdo formatado
@@ -273,13 +281,20 @@ export default function Tabela() {
 		}
 
 		const chave = `${dia}-${semestre}`;
-		const idCelula = celulasMap[chave];
+		const celulaInfo = celulasMap[chave];
 		const conteudo = dados[chave];
 
 		// Verifica se tem conteúdo (célula preenchida)
-		if (conteudo && conteudo.trim() !== "") {
-			// Célula já existe - abrir modal de exclusão
-			setCelulaParaDeletar({ id: idCelula || 0, conteudo });
+		if (conteudo && conteudo.trim() !== "" && celulaInfo) {
+			// Célula já existe - abrir modal de edição/exclusão
+			setCelulaParaEditar({
+				id: celulaInfo.idCelula,
+				conteudo,
+				idDisciplina: celulaInfo.idDisciplina,
+				idProfessor: celulaInfo.idProfessor,
+				dia,
+				semestre,
+			});
 			setModalDeleteAberto(true);
 		} else {
 			// Célula vazia - abrir modal de criação
@@ -289,13 +304,13 @@ export default function Tabela() {
 	};
 
 	const handleDeletar = async () => {
-		if (!celulaParaDeletar) return;
+		if (!celulaParaEditar) return;
 
 		try {
-			await api.delete(`/celula/${celulaParaDeletar.id}`);
+			await api.delete(`/celula/${celulaParaEditar.id}`);
 			toast.success("Aula excluída com sucesso!");
 			setModalDeleteAberto(false);
-			setCelulaParaDeletar(null);
+			setCelulaParaEditar(null);
 			await carregarDados();
 		} catch (error: any) {
 			let mensagemErro = "Erro ao excluir a aula";
@@ -310,6 +325,12 @@ export default function Tabela() {
 
 			toast.error(mensagemErro);
 		}
+	};
+
+	const handleAtualizar = async () => {
+		setModalDeleteAberto(false);
+		setCelulaParaEditar(null);
+		await carregarDados();
 	};
 
 	const handleSalvar = async (conteudo: string) => {
@@ -331,7 +352,7 @@ export default function Tabela() {
 
 	const handleFecharModalDelete = () => {
 		setModalDeleteAberto(false);
-		setCelulaParaDeletar(null);
+		setCelulaParaEditar(null);
 	};
 
 	const handleCriarGrade = async () => {
@@ -473,13 +494,13 @@ export default function Tabela() {
 				<div className='mb-3 text-gray-500 text-sm'>Carregando células...</div>
 			)}
 
-			<div className='w-full flex-1 overflow-hidden flex justify-center'>
-				<div className='w-full overflow-x-auto shadow-lg max-w-[90vw] lg:max-w-[1000px]'>
+			<div className='w-full flex-1 overflow-hidden flex justify-center items-start'>
+				<div className='w-full overflow-auto shadow-lg max-w-[90vw] lg:max-w-[1000px]'>
 					<table className='border-separate border-spacing-0 border text-center w-full'>
 						<thead>
 							<tr className='bg-blue-900 text-white'>
 								<th
-									className='p-1 sm:p-2 h-12 sm:h-16 border border-black text-xs sm:text-sm lg:text-base sticky left-0 z-20 bg-blue-900'
+									className='p-1 sm:p-2 h-12 sm:h-14 border border-black text-xs sm:text-sm lg:text-base sticky left-0 z-20 bg-blue-900'
 									style={{ minWidth: "160px", width: "160px" }}
 								>
 									Dia
@@ -487,7 +508,7 @@ export default function Tabela() {
 								{semestres.map((s) => (
 									<th
 										key={s}
-										className='p-1 sm:p-2 h-12 sm:h-16 border border-black text-xs sm:text-sm lg:text-base'
+										className='p-1 sm:p-2 h-12 sm:h-14 border border-black text-xs sm:text-sm lg:text-base'
 										style={{ width: `${100 / semestres.length}%` }}
 									>
 										{s}
@@ -499,7 +520,7 @@ export default function Tabela() {
 							{dias.map((dia) => (
 								<tr key={dia}>
 									<td
-										className='border p-1 sm:p-2 font-semibold bg-gray-50 sticky left-0 z-10 h-16 sm:h-20 text-xs sm:text-sm lg:text-base'
+										className='border p-1 sm:p-2 font-semibold bg-gray-50 sticky left-0 z-10 h-[10vh] sm:h-[11vh] text-xs sm:text-sm lg:text-base'
 										style={{ minWidth: "160px", width: "160px" }}
 									>
 										<div className='break-words'>{dia}</div>
@@ -511,11 +532,11 @@ export default function Tabela() {
 											<td
 												key={chave}
 												onClick={() => handleCellClick(dia, sem)}
-												className='border p-1 sm:p-2 hover:bg-blue-50 cursor-pointer h-16 sm:h-20 overflow-hidden'
+												className='border p-1 sm:p-2 hover:bg-blue-50 cursor-pointer h-[10vh] sm:h-[11vh] overflow-hidden'
 												style={{ width: `${100 / semestres.length}%` }}
 												title={conteudo || chave}
 											>
-												<div className='h-full flex items-center justify-center overflow-auto text-[10px] sm:text-xs leading-tight whitespace-pre-line break-words'>
+												<div className='h-full flex items-center justify-center overflow-hidden text-[clamp(0.45rem,1.1vw,0.75rem)] leading-tight whitespace-pre-line break-words'>
 													{conteudo || ""}
 												</div>
 											</td>
@@ -541,13 +562,21 @@ export default function Tabela() {
 				/>
 			)}
 
-			{/* Modal de Exclusão */}
-			{celulaParaDeletar && (
+			{/* Modal de Edição/Exclusão */}
+			{celulaParaEditar && (
 				<ModalDelete
 					isOpen={modalDeleteAberto}
 					onClose={handleFecharModalDelete}
 					onDelete={handleDeletar}
-					conteudo={celulaParaDeletar.conteudo}
+					onUpdate={handleAtualizar}
+					conteudo={celulaParaEditar.conteudo}
+					idCelula={celulaParaEditar.id}
+					idDisciplina={celulaParaEditar.idDisciplina}
+					idProfessor={celulaParaEditar.idProfessor}
+					dia={celulaParaEditar.dia}
+					semestre={celulaParaEditar.semestre}
+					idGrade={gradeSelecionada ?? undefined}
+					idCurso={cursoSelecionado}
 				/>
 			)}
 		</div>

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { capitalizeResponseData } from "@/utils/capitalize";
 
 const api = axios.create({
 	baseURL: "http://localhost:3333",
@@ -17,7 +18,12 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-	(response) => response,
+	(response) => {
+		if (response.data) {
+			response.data = capitalizeResponseData(response.data);
+		}
+		return response;
+	},
 	(error) => {
 		if (typeof window !== "undefined" && error.response?.status === 401) {
 			document.cookie = "auth-token=; path=/; max-age=0";

@@ -82,7 +82,15 @@ export interface ModalDeleteProps {
 	isOpen: boolean;
 	onClose: () => void;
 	onDelete: () => void;
+	onUpdate: () => void;
 	conteudo: string;
+	idCelula: number;
+	idDisciplina: number;
+	idProfessor: number;
+	dia: string;
+	semestre: string;
+	idGrade?: number;
+	idCurso: number;
 }
 
 export interface FormCadastroProps {

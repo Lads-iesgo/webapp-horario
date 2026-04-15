@@ -22,10 +22,12 @@ export default function CadastroProfessor() {
 	const [loading, setLoading] = useState(false);
 	const [cursos, setCursos] = useState<{ value: string; label: string }[]>([]);
 	const [idCursoSelecionado, setIdCursoSelecionado] = useState("");
+	const [usuarios, setUsuarios] = useState<{ value: string; label: string }[]>([]);
+	const [idUsuarioSelecionado, setIdUsuarioSelecionado] = useState("");
 
 	const isAdmin = usuario?.nomePerfil.toLowerCase() === "admin";
 
-	// Buscar cursos disponíveis quando o usuário for Admin
+	// Buscar cursos e usuários disponíveis
 	useEffect(() => {
 		if (isAdmin) {
 			api
@@ -41,6 +43,20 @@ export default function CadastroProfessor() {
 					toast.error("Erro ao carregar cursos");
 				});
 		}
+
+		// Buscar usuários para vincular (disponível para admin e coordenador)
+		api
+			.get("/usuario")
+			.then((res) => {
+				const opcoes = res.data.map((u: any) => ({
+					value: String(u.idUsuario),
+					label: `${u.nomeUsuario} (${u.emailUsuario})`,
+				}));
+				setUsuarios(opcoes);
+			})
+			.catch(() => {
+				// Silencioso: o select simplesmente não aparece se falhar
+			});
 	}, [isAdmin]);
 
 	const opcoesTitulacao = [
@@ -106,6 +122,11 @@ export default function CadastroProfessor() {
 				payloadProfessor.idCurso = Number(idCursoSelecionado);
 			}
 
+			// Vincular a um usuário (opcional)
+			if (idUsuarioSelecionado) {
+				payloadProfessor.idUsuario = Number(idUsuarioSelecionado);
+			}
+
 			const responseProfessor = await api.post("/professor", payloadProfessor);
 
 			// 2. Buscar o ID do professor cadastrado
@@ -157,6 +178,7 @@ export default function CadastroProfessor() {
 			setCurriculoLattes("");
 			setDiasSelecionados([]);
 			setIdCursoSelecionado("");
+			setIdUsuarioSelecionado("");
 		} catch (error: any) {
 			let mensagemErro = "Erro ao cadastrar professor";
 
@@ -227,6 +249,16 @@ export default function CadastroProfessor() {
 					onChange={(e) => setCurriculoLattes(e.target.value)}
 					disabled={loading}
 				/>
+				{usuarios.length > 0 && (
+					<SelectCadastro
+						label='Vincular a Usuário (opcional)'
+						placeholder='Nenhum usuário vinculado'
+						options={usuarios}
+						value={idUsuarioSelecionado}
+						onChange={(e) => setIdUsuarioSelecionado(e.target.value)}
+						disabled={loading}
+					/>
+				)}
 				<DisponibilidadeDias onChange={handleDisponibilidadeChange} />
 			</FormCadastro>
 		</>

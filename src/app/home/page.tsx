@@ -7,7 +7,7 @@ export default function Home() {
 		<div className='h-screen overflow-hidden'>
 			<Header title='Home' />
 			<NavBar />
-			<main className='h-[calc(100vh-4rem)] lg:ml-72 overflow-hidden'>
+			<main className='h-[calc(100vh-4rem)] lg:ml-72 overflow-hidden bg-gray-100'>
 				<Table />
 			</main>
 		</div>
